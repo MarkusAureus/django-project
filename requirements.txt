@@ -1,0 +1,7 @@
+django
+celery
+redis
+feedparser
+psycopg2-binary
+django-celery-beat
+python-dotenv

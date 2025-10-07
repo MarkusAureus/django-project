@@ -1,0 +1,61 @@
+services:
+  db:
+    image: postgres:15
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=news_digest_db
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=password
+
+  redis:
+    image: redis:7
+
+  web:
+    build: .
+    entrypoint: ["/app/entrypoint.sh"]
+    command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
+    working_dir: /app
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    environment:
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=password
+    depends_on:
+      - db
+      - redis
+
+  celery_worker:
+    build: .
+    entrypoint: ["/app/entrypoint.sh"]
+    command: celery -A my_project worker -l info
+    working_dir: /app
+    volumes:
+      - .:/app
+    environment:
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=password
+    depends_on:
+      - db
+      - redis
+
+  celery_beat:
+    build: .
+    entrypoint: ["/app/entrypoint.sh"]
+    command: sh -c "sleep 10 && celery -A my_project beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler"
+    working_dir: /app
+    volumes:
+      - .:/app
+    environment:
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=password
+    depends_on:
+      - db
+      - redis
+
+volumes:
+  postgres_data:
+
+
